@@ -1,28 +1,28 @@
 import React, { useEffect, useState } from 'react';
 
 interface Props {
-  onFinish: (durationMin: number, distanceKm: number) => void;
+  onFinish: (durationMin: number, distanceKm: number, route: [number, number][]) => void;
   onCancel: () => void;
 }
 
 export default function WalkScreen({ onFinish, onCancel }: Props) {
-  const [elapsed, setElapsed] = useState(0); // seconds
-  const [distance, setDistance] = useState(0); // km — simulated via geolocation
+  const [elapsed, setElapsed] = useState(0);
+  const [distance, setDistance] = useState(0);
+  const [route, setRoute] = useState<[number, number][]>([]);
 
-  // Geolocation tracking
   useEffect(() => {
     let lastPos: GeolocationPosition | null = null;
     const watchId = navigator.geolocation?.watchPosition(pos => {
+      const coord: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      setRoute(r => [...r, coord]);
       if (lastPos) {
         setDistance(d => d + haversine(lastPos!.coords, pos.coords));
       }
       lastPos = pos;
     }, undefined, { enableHighAccuracy: true });
-
     return () => { if (watchId != null) navigator.geolocation?.clearWatch(watchId); };
   }, []);
 
-  // Timer
   useEffect(() => {
     const id = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(id);
@@ -30,7 +30,7 @@ export default function WalkScreen({ onFinish, onCancel }: Props) {
 
   const handleFinish = () => {
     const durationMin = Math.max(1, Math.round(elapsed / 60));
-    onFinish(durationMin, parseFloat(distance.toFixed(2)));
+    onFinish(durationMin, parseFloat(distance.toFixed(2)), route);
   };
 
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -59,17 +59,12 @@ export default function WalkScreen({ onFinish, onCancel }: Props) {
         </p>
       </div>
 
-      <button style={styles.btnFinish} onClick={handleFinish}>
-        Finish Walk ✅
-      </button>
-      <button style={styles.btnCancel} onClick={onCancel}>
-        Cancel
-      </button>
+      <button style={styles.btnFinish} onClick={handleFinish}>Finish Walk ✅</button>
+      <button style={styles.btnCancel} onClick={onCancel}>Cancel</button>
     </div>
   );
 }
 
-// Haversine formula — returns km
 function haversine(a: GeolocationCoordinates, b: GeolocationCoordinates): number {
   const R = 6371;
   const dLat = deg2rad(b.latitude - a.latitude);

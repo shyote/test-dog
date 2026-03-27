@@ -1,4 +1,6 @@
 import React from 'react';
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { AppState } from './types';
 
 interface Props {
@@ -84,17 +86,42 @@ export default function HomeScreen({ state, onStartWalk, onSetupDog }: Props) {
                 const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
                 const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                 const feedbackEmoji = w.feedback === 'tired' ? '😴' : w.feedback === 'satisfied' ? '🙂' : w.feedback === 'energetic' ? '⚡' : '';
+                const hasRoute = w.route && w.route.length > 1;
+                const center: [number, number] = hasRoute
+                  ? [
+                      w.route!.reduce((s, p) => s + p[0], 0) / w.route!.length,
+                      w.route!.reduce((s, p) => s + p[1], 0) / w.route!.length,
+                    ]
+                  : [48.8566, 2.3522];
                 return (
-                  <div key={w.id} style={styles.walkRow}>
-                    <div style={styles.walkLeft}>
-                      <span style={styles.walkDate}>{dateStr}</span>
-                      <span style={styles.walkTime}>{timeStr}</span>
+                  <div key={w.id} style={styles.walkEntry}>
+                    <div style={styles.walkRow}>
+                      <div style={styles.walkLeft}>
+                        <span style={styles.walkDate}>{dateStr}</span>
+                        <span style={styles.walkTime}>{timeStr}</span>
+                      </div>
+                      <div style={styles.walkRight}>
+                        <span style={styles.walkStat}>{w.durationMin} min</span>
+                        <span style={styles.walkStat}>{w.distanceKm.toFixed(2)} km</span>
+                        {feedbackEmoji && <span style={styles.walkEmoji}>{feedbackEmoji}</span>}
+                      </div>
                     </div>
-                    <div style={styles.walkRight}>
-                      <span style={styles.walkStat}>{w.durationMin} min</span>
-                      <span style={styles.walkStat}>{w.distanceKm.toFixed(2)} km</span>
-                      {feedbackEmoji && <span style={styles.walkEmoji}>{feedbackEmoji}</span>}
-                    </div>
+                    {hasRoute && (
+                      <div style={styles.miniMapWrap}>
+                        <MapContainer
+                          center={center}
+                          zoom={15}
+                          style={{ width: '100%', height: '100%', borderRadius: 10 }}
+                          zoomControl={false}
+                          scrollWheelZoom={false}
+                          dragging={false}
+                          attributionControl={false}
+                        >
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          <Polyline positions={w.route!} color="#1a73e8" weight={4} opacity={0.85} />
+                        </MapContainer>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -150,10 +177,12 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1.5px solid #1a73e8', borderRadius: 12,
     fontSize: 15, fontWeight: 600, cursor: 'pointer',
   },
+  walkEntry: { borderBottom: '1px solid #f0f0f0', paddingBottom: 10, marginBottom: 4 },
   walkRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '10px 0', borderBottom: '1px solid #f0f0f0',
+    padding: '10px 0 6px',
   },
+  miniMapWrap: { height: 160, borderRadius: 10, overflow: 'hidden', marginBottom: 4 },
   walkLeft: { display: 'flex', flexDirection: 'column', gap: 2 },
   walkDate: { fontWeight: 600, fontSize: 14 },
   walkTime: { color: '#888', fontSize: 12 },

@@ -17,6 +17,7 @@ export interface Walk {
   durationMin: number;
   distanceKm: number;
   feedback?: WalkFeedback;
+  route?: [number, number][]; // [lat, lng] pairs
 }
 
 export interface AppState {

@@ -12,6 +12,7 @@ interface PendingWalk {
   durationMin: number;
   distanceKm: number;
   batteryGain: number;
+  route: [number, number][];
 }
 
 const STORAGE_KEY = 'dogwalk_state';
@@ -50,7 +51,7 @@ export default function App() {
     setScreen('home');
   };
 
-  const handleWalkFinish = (durationMin: number, distanceKm: number) => {
+  const handleWalkFinish = (durationMin: number, distanceKm: number, route: [number, number][]) => {
     const factor = intensityFactor(durationMin, distanceKm);
     const effort = durationMin * factor;
     const gain = (effort / state.dailyNeed) * 100;
@@ -62,10 +63,11 @@ export default function App() {
       endTime: Date.now(),
       durationMin,
       distanceKm,
+      route,
     };
 
     update({ ...state, battery: newBattery, walks: [...state.walks, walk] });
-    setPending({ durationMin, distanceKm, batteryGain: gain });
+    setPending({ durationMin, distanceKm, batteryGain: gain, route });
     setScreen('feedback');
   };
 
